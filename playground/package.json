@@ -1,0 +1,10 @@
+{
+	"name": "ftp-playground",
+	"type": "module",
+	"private": true,
+	"description": "A project with @amxts/ftp in it: try the library here, and its tests load this project.",
+	"devDependencies": {
+		"@amxts/config-core": "file:../../config-core",
+		"@amxts/ftp": "file:.."
+	}
+}
