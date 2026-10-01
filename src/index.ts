@@ -59,14 +59,12 @@ export interface FtpEntry {
 
 /** Where a client's addresses start: the protocol, the host and the folder of `ftp.connect`'s address. */
 interface Origin {
-	/** `"ftp:"`, `"ftps:"` or `"sftp:"`, as the network client takes it. */
+	/** `"ftp:"`, `"ftpes:"`, `"ftps:"` or `"sftp:"`, as the address has it. */
 	scheme: string;
 	/** The host and its port, e.g. `"example.com:2121"`. */
 	host: string;
 	/** The address's folder, encoded, without a slash at the end: `""` or `"/backup"`. */
 	folder: string;
-	/** `ftpes:`: TLS asked for on a plain FTP connection, and required. */
-	explicitTls: boolean;
 }
 
 /**
@@ -97,7 +95,7 @@ export class FtpClient {
 		transfer.upload = true;
 		transfer.createDirs = true;
 		transfer.file = localPath;
-		await this.send("upload", remotePath, this.address(remotePath, false), transfer, options);
+		await this.send("upload", remotePath, this.address(remotePath, false), transfer);
 	}
 
 	/**
@@ -111,7 +109,7 @@ export class FtpClient {
 	async download(remotePath: string, localPath: string, options: FtpCallOptions = {}) {
 		const transfer = this.requestOptions(options);
 		transfer.file = localPath;
-		await this.send("download", remotePath, this.address(remotePath, false), transfer, options);
+		await this.send("download", remotePath, this.address(remotePath, false), transfer);
 	}
 
 	/**
@@ -122,7 +120,7 @@ export class FtpClient {
 	 * ```
 	 */
 	async readFile(remotePath: string, options: FtpCallOptions = {}) {
-		const result = await this.send("readFile", remotePath, this.address(remotePath, false), this.requestOptions(options), options);
+		const result = await this.send("readFile", remotePath, this.address(remotePath, false), this.requestOptions(options));
 		return result.text();
 	}
 
@@ -139,7 +137,7 @@ export class FtpClient {
 		transfer.upload = true;
 		transfer.createDirs = true;
 		transfer.body = text;
-		await this.send("writeFile", remotePath, this.address(remotePath, false), transfer, options);
+		await this.send("writeFile", remotePath, this.address(remotePath, false), transfer);
 	}
 
 	/**
@@ -153,7 +151,7 @@ export class FtpClient {
 	 */
 	async list(remotePath?: string, options: FtpCallOptions = {}) {
 		const path = remotePath ?? "";
-		const result = await this.send("list", path, this.address(path, true), this.requestOptions(options), options);
+		const result = await this.send("list", path, this.address(path, true), this.requestOptions(options));
 		return parseListing(result.text());
 	}
 
@@ -166,7 +164,7 @@ export class FtpClient {
 	async __check() {
 		const check = this.requestOptions({});
 		check.method = "HEAD";
-		await this.send("connect", "", this.address("", true), check, {});
+		await this.send("connect", "", this.address("", true), check);
 	}
 
 	/** The request's options: the login, then the call's timeout and signal. */
@@ -183,7 +181,8 @@ export class FtpClient {
 		};
 		const timeout = options.timeout ?? login.timeout;
 		if (timeout !== undefined) transfer.timeout = timeout;
-		if (this.origin.explicitTls) transfer.ssl = "all";
+		// ftpes: TLS asked for on a plain FTP connection, and required.
+		if (this.origin.scheme == "ftpes:") transfer.ssl = "all";
 		return transfer;
 	}
 
@@ -195,22 +194,23 @@ export class FtpClient {
 	 */
 	private address(path: string, folder: boolean) {
 		const origin = this.origin;
-		const sftp = origin.scheme == "sftp:";
+		const scheme = schemeOf(origin.scheme);
+		const sftp = scheme == "sftp:";
 		const relative = !path.startsWith("/");
 		const start = relative ? origin.folder || (sftp ? "/~" : "") : sftp ? "" : "/%2F";
 		const rest = encodePath(relative ? path : path.slice(1));
 		const joined = rest.length > 0 ? `${start}/${rest}` : start;
 		const tail = folder && !joined.endsWith("/") ? "/" : "";
-		return `${origin.scheme}//${origin.host}${joined}${tail}`;
+		return `${scheme}//${origin.host}${joined}${tail}`;
 	}
 
 	/** Sends a request; its result, or a rejection that says what failed. */
-	private async send(action: string, path: string, url: string, transfer: RequestOptions, options: FtpCallOptions) {
+	private async send(action: string, path: string, url: string, transfer: RequestOptions) {
 		if (this.closed) throw new Error(`${action} ${path}: the FTP client is closed`);
 
 		const result = await request(url, transfer);
 		if (result.errorKind == "") return result;
-		throw this.failure(action, path, result, options.signal ?? null);
+		throw this.failure(action, path, result, transfer.signal ?? null);
 	}
 
 	/** What failed, in words: the action, the path and why - never the password. */
@@ -286,16 +286,14 @@ export class Ftp {
 		const address = URL.parse(url);
 		if (!address) throw new TypeError("ftp.connect: the address is not a URL, e.g. sftp://user@example.com");
 
-		const scheme = schemeOf(address.protocol);
-		if (scheme.length == 0) throw new TypeError(`ftp.connect: ${address.protocol} is not one of ftp:, ftpes:, ftps: or sftp:`);
+		if (schemeOf(address.protocol).length == 0) throw new TypeError(`ftp.connect: ${address.protocol} is not one of ftp:, ftpes:, ftps: or sftp:`);
 
 		const login: FtpOptions = { ...options };
 		login.password = options.password ?? decodeURIComponent(address.password);
 		const origin: Origin = {
-			scheme,
+			scheme: address.protocol,
 			host: address.host,
 			folder: address.pathname.endsWith("/") ? address.pathname.slice(0, -1) : address.pathname,
-			explicitTls: address.protocol == "ftpes:",
 		};
 		const client = new FtpClient(origin, options.user ?? decodeURIComponent(address.username), login);
 		await client.__check();
