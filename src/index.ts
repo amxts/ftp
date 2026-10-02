@@ -129,7 +129,7 @@ export class FtpClient {
 	 * making the remote folders that are not there.
 	 *
 	 * ```ts
-	 * await client.writeFile("/status/online.txt", `${Player.all().length}`);
+	 * await client.writeFile("/status/online.txt", `${server.players.length}`);
 	 * ```
 	 */
 	async writeFile(remotePath: string, text: string, options: FtpCallOptions = {}) {

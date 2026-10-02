@@ -121,7 +121,7 @@ await client.download("/maps/de_dust2.bsp", "maps/de_dust2.bsp"); // вниз, �
 
 ```ts
 const maps = await client.readFile("/configs/maps.ini");
-await client.writeFile("/status/online.txt", `${Player.all().length}`);
+await client.writeFile("/status/online.txt", `${server.players.length}`);
 ```
 
 ### Содержимое папки

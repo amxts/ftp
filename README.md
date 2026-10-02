@@ -121,7 +121,7 @@ Text reads and writes without a file on the game server:
 
 ```ts
 const maps = await client.readFile("/configs/maps.ini");
-await client.writeFile("/status/online.txt", `${Player.all().length}`);
+await client.writeFile("/status/online.txt", `${server.players.length}`);
 ```
 
 ### Listing a folder
