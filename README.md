@@ -87,7 +87,7 @@ async function backUpLog() {
 		await client.close();
 		console.log("backup: done");
 	} catch (error) {
-		console.error(`backup: ${(error as Error).message}`);
+		console.error(`backup: ${error.message}`);
 	}
 }
 ```

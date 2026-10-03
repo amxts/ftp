@@ -87,7 +87,7 @@ async function backUpLog() {
 		await client.close();
 		console.log("backup: done");
 	} catch (error) {
-		console.error(`backup: ${(error as Error).message}`);
+		console.error(`backup: ${error.message}`);
 	}
 }
 ```
@@ -115,7 +115,7 @@ await client.upload("demos/match.dem", "demos/match.dem");     // файл иг�
 await client.download("/maps/de_dust2.bsp", "maps/de_dust2.bsp"); // вниз, в игровую папку
 ```
 
-Локальный путь — путь игровой папки (`cstrike/`), как и везде в amxts. Неудачная загрузка оставляет уже существующий файл как был.
+Локальный путь — путь игровой папки (`cstrike/`), как и везде в amxts. Неудачное скачивание оставляет уже существующий файл как был.
 
 Текст читается и пишется без файла на игровом сервере:
 
