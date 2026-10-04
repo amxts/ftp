@@ -1,7 +1,7 @@
 {
 	"name": "@amxts/ftp",
 	"type": "module",
-	"version": "0.2.0",
+	"version": "0.1.0",
 	"description": "FTP, FTPS and SFTP for amxts plugins: upload, download and list files on another server, every call a promise that never holds the game up.",
 	"author": {
 		"name": "kukson777",
